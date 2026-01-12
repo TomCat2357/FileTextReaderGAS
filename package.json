@@ -1,0 +1,25 @@
+{
+  "name": "file-text-reader-gas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "指定したURLのGoogle Document, PDF, Spreadsheetからテキストを抽出するGASライブラリ",
+  "scripts": {
+    "clasp:login": "npx @google/clasp login",
+    "clasp:push": "npx @google/clasp push",
+    "clasp:pull": "npx @google/clasp pull",
+    "clasp:open": "npx @google/clasp open"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.0.6-alpha"
+  },
+  "keywords": [
+    "google-apps-script",
+    "clasp",
+    "document",
+    "pdf",
+    "spreadsheet",
+    "text-extraction"
+  ],
+  "author": "",
+  "license": "ISC"
+}
