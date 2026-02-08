@@ -1,3 +1,4 @@
 node_modules/
 digest.txt
 .clasp.json
+.local/
