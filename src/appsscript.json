@@ -11,7 +11,7 @@
   },
   "webapp": {
     "executeAs": "USER_DEPLOYING",
-    "access": "ANYONE_WITH_GOOGLE_ACCOUNT"
+    "access": "ANYONE_ANONYMOUS"
   },
   "oauthScopes": [
     "https://www.googleapis.com/auth/drive",

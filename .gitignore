@@ -2,3 +2,5 @@ node_modules/
 digest.txt
 .clasp.json
 .local/
+.gas-deployment.json
+.claude/*

@@ -8,6 +8,8 @@ Google Docs, Sheets, PDF, Word ファイルからテキストを抽出する Goo
 ```
 FileTextReaderGAS/
 ├── .clasp.json            # clasp プロジェクト設定
+├── .gas-deployment.json   # デプロイ情報キャッシュ (自動生成)
+├── deploy.ps1             # デプロイスクリプト (PowerShell)
 ├── package.json           # npm 設定
 ├── README.md
 └── src/
@@ -33,7 +35,7 @@ npm install
 npm run clasp:login
 ```
 
-### 3. プロジェクトの作成とデプロイ
+### 3. プロジェクトの作成
 
 新規作成する場合:
 
@@ -41,18 +43,41 @@ npm run clasp:login
 clasp create --title "FileTextReaderGAS" --type standalone --rootDir src
 ```
 
-既存プロジェクトにデプロイ:
+### 4. Google Cloud Console での設定
+
+Apps Script エディタで以下を有効化:
+
+- **Advanced Google services** > **Drive API** (v2)
+- Google Cloud Console で同プロジェクトの **Google Drive API** を有効化
+
+## デプロイ
+
+### deploy.ps1 を使う方法 (推奨)
+
+PowerShell でデプロイスクリプトを実行すると、プッシュ・デプロイ・情報表示をまとめて行えます。
+
+```powershell
+.\deploy.ps1
+```
+
+初回デプロイ時は新規デプロイメントが作成され、2回目以降は `.gas-deployment.json` に保存された Deployment ID を使って同じデプロイメントが更新されます。
+
+### 手動でデプロイする場合
 
 ```bash
 npm run clasp:push
 ```
 
-### 4. Google Cloud Console での設定
+プッシュ後、Apps Script エディタまたは `clasp deploy` コマンドで Web アプリとしてデプロイしてください。
 
-Apps Script エディタで以下を有効化:
+### Web アプリの公開設定
 
-- **Advanced Google services** > **Drive API**
-- Google Cloud Console で同プロジェクトの **Google Drive API** を有効化
+`src/appsscript.json` の webapp セクションで以下が設定されています:
+
+| 設定 | 値 | 説明 |
+|---|---|---|
+| `executeAs` | `USER_DEPLOYING` | デプロイしたユーザーの権限で実行 |
+| `access` | `ANYONE_ANONYMOUS` | 認証なしで誰でもアクセス可能 |
 
 ## 対応ファイル形式
 
@@ -83,7 +108,8 @@ var text = readTextFromUrl("PDF_FILE_ID", { ocrLanguage: "ja" });
 入力形式は以下に対応:
 
 - Google Docs / Sheets / Drive の URL
-- 共有リンク
+- 共有リンク (`/d/FILE_ID/` 形式)
+- クエリパラメータ付きリンク (`?id=FILE_ID`)
 - ファイル ID (10文字以上の英数字)
 
 ### 非同期タスク API
@@ -110,8 +136,18 @@ Content-Type: application/json
 | `action` | Yes | `"createTask"` 固定 | - |
 | `sourceUrl` | Yes | 対象ファイルの URL または ID | - |
 | `parts` | No | 分割数 | `1` |
-| `splitMode` | No | `"equal"` (行均等分割) / `"page"` (改ページ分割) | `"equal"` |
+| `splitMode` | No | `"equal"` (行均等分割) / `"page"` (改ページ `\f` で分割) | `"equal"` |
 | `ocrLanguage` | No | PDF OCR 言語コード | `"ja"` |
+
+レスポンス:
+
+```json
+{
+  "taskId": "t_xxxxxxxxxxxx",
+  "status": "queued",
+  "statusUrl": "?taskId=t_xxxxxxxxxxxx"
+}
+```
 
 #### タスク状態確認 (GET)
 
@@ -129,22 +165,32 @@ GET {デプロイURL}?taskId={taskId}
   "partsTotal": 3,
   "partsDone": 3,
   "results": [
-    { "partNo": 1, "status": "completed", "url": "https://drive.google.com/..." },
-    { "partNo": 2, "status": "completed", "url": "https://drive.google.com/..." },
-    { "partNo": 3, "status": "completed", "url": "https://drive.google.com/..." }
-  ]
+    { "partNo": 1, "status": "done", "url": "https://drive.google.com/..." },
+    { "partNo": 2, "status": "done", "url": "https://drive.google.com/..." },
+    { "partNo": 3, "status": "done", "url": "https://drive.google.com/..." }
+  ],
+  "error": null
 }
 ```
 
 タスクのステータス: `queued` → `running` → `completed` / `failed`
 
+失敗時のレスポンスには `error` オブジェクト (`code`, `message`) が含まれます。
+
+#### アクセス制御
+
+- タスク状態確認時、リクエスト元のユーザーがタスク作成者と一致しない場合は `FORBIDDEN` エラーを返します。
+- 結果ファイルは Google Drive 上にオーナー限定 (PRIVATE) で保存されます。保存先フォルダ名: `FileTextReaderGAS_Results`
+
 ## 必要な OAuth スコープ
 
-- `https://www.googleapis.com/auth/drive`
-- `https://www.googleapis.com/auth/documents`
-- `https://www.googleapis.com/auth/spreadsheets`
-- `https://www.googleapis.com/auth/script.external_request`
-- `https://www.googleapis.com/auth/userinfo.email`
+| スコープ | 用途 |
+|---|---|
+| `https://www.googleapis.com/auth/drive` | ファイル情報取得、OCR 変換、結果保存 |
+| `https://www.googleapis.com/auth/documents` | Google Docs テキスト取得 |
+| `https://www.googleapis.com/auth/spreadsheets` | Google Sheets テキスト取得 |
+| `https://www.googleapis.com/auth/script.external_request` | 外部リクエスト (Web App) |
+| `https://www.googleapis.com/auth/userinfo.email` | タスク作成者の識別 |
 
 ## npm スクリプト
 
