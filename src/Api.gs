@@ -14,6 +14,10 @@ function doPost(e) {
       return handleCreateTask_(body);
     }
 
+    if (action === "readSync") {
+      return handleReadSync_(body);
+    }
+
     return jsonResponse_({
       error: { code: "INVALID_ACTION", message: "Unknown action: " + action }
     });
@@ -91,6 +95,23 @@ function handleCreateTask_(body) {
     taskId: task.taskId,
     status: task.status,
     statusUrl: "?taskId=" + task.taskId
+  });
+}
+
+function handleReadSync_(body) {
+  if (!body.sourceUrl) {
+    return jsonResponse_({
+      error: { code: "MISSING_PARAM", message: "sourceUrl is required" }
+    });
+  }
+
+  var text = readTextFromUrl(body.sourceUrl, {
+    ocrLanguage: body.ocrLanguage || "ja"
+  });
+
+  return jsonResponse_({
+    status: "completed",
+    text: text
   });
 }
 
