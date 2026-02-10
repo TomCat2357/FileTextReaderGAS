@@ -168,7 +168,7 @@ if ($WebAppUrl -ne "") {
         $response = Invoke-WebRequest -Uri $WebAppUrl -Method Head -MaximumRedirection 0 -ErrorAction SilentlyContinue
     } catch {
         $statusCode = $_.Exception.Response.StatusCode.value__
-        if ($statusCode -eq 302 -or $statusCode -eq 401) {
+        if ($statusCode -eq 401) {
             Write-Host "Web App が HTTP $statusCode を返しました。公開設定が正しいか確認してください。" -ForegroundColor Yellow
         }
     }
